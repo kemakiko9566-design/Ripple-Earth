@@ -1,0 +1,21 @@
+# Root-level ignores for JA Ripple Earth project
+
+# Temp/scratch files at root level
+dev-*.log
+tmp_*
+lofi-ocean.html
+write_shaders.mjs
+hero-preview.png
+
+# Agent meeting notes (personal)
+Agent*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

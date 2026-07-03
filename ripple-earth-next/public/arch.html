@@ -1,0 +1,185 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ripple Earth 技术架构</title><style>body{background:#0d1117;color:#c9d1d9;font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6}pre{background:#161b22;padding:16px;border-radius:6px;overflow-x:auto}code{background:#161b22;padding:2px 6px;border-radius:3px;font-size:0.9em}pre code{background:none;padding:0}table{border-collapse:collapse;width:100%}td,th{border:1px solid #30363d;padding:8px 12px;text-align:left}th{background:#161b22}h1,h2,h3{color:#58a6ff}a{color:#58a6ff}.tag{display:inline-block;background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:10px;font-size:0.8em}</style></head><body><div id="content"># JA Ripple Earth -- 技术架构文档
+&gt; 本文档覆盖项目概述、技术选型、组件架构、数据流、渲染管线、设计系统及已知限制。
+
+## 1. 项目概述
+
+### 1.1 叙事核心
+Ripple Earth 是一个 Awwwards 风格的环境叙事 Web Experience。以 1992 年太平洋橡胶鸭漂流事件为叙事锚点，讲述微小的人类行为如何通过时间和自然系统产生全球性影响。全页通过滚动驱动，将数字地球、AI 生成视频、Canvas 粒子系统与 GSAP 动画融为一体。
+
+### 1.2 目标定位
+- 比赛级首页 Demo，非完整网站或产品。
+- 对标 Apple 官网 / NASA Visualization / Awwwards Experience 的视觉品质。
+- 第一个画面给用户的感受应是探索一个数字化地球纪录片，而非环保网页。
+
+### 1.3 叙事流程
+[00] Origin -&gt; [01] Descent -&gt; [02] Surface -&gt; [03] The Spill -&gt; [04] Invisible Drift -&gt; [05] Legacy -&gt; [06] Future
+
+## 2. 技术栈
+
+| 层 | 选型 | 版本 | 选型理由 |
+| --- | --- | --- | --- |
+| 框架 | Next.js | 16.2.9 | React 生态、Turbopack |
+| 3D 渲染 | R3F + Three.js | 9.x / 0.185 | 声明式 3D、Hooks 生态 |
+| 辅助库 | @react-three/drei | 10.x | useLoader 等工具集 |
+| 动画 | GSAP + ScrollTrigger | 3.15 | 行业标准、滚动驱动 |
+| 样式 | Tailwind CSS v4 | 4.x | 原子化 CSS、零运行时 |
+| 语言 | TypeScript (strict) | 5.x | 类型安全 |
+
+注: AGENTS.md 提示 Next.js 16 有 Breaking Change。
+
+## 3. 项目结构
+
+```
+ripple-earth-next/
+  public/videos/earth-closeup.mp4   视频背景 (1920x1080, 60fps, H.264)
+  src/
+    app/            page.tsx (主入口) + layout.tsx + globals.css
+    components/
+      Earth/        Globe.tsx (3D 地球核心组件)
+      Effects/      SpaceParticles / AtmosphereGlow / ScrollReveal / ImpactNode
+      Ripple/       RippleEffect.tsx (Canvas 涟漪粒子系统)
+      Scene/        7 个场景段 (SceneOrigin 到 SceneFuture)
+      UI/           Header / SceneIndex / ScrollCue
+      VideoBackground.tsx   视频背景层
+    animation/      scroll.ts (工具函数) + timeline.ts (未使用)
+    data/           stories.json (3 条环境故事)
+  ARCHITECTURE.md   本文档
+```
+
+## 4. 组件层级与 z-index 堆叠
+
+```
+z:-1  AtmosphereGlow       大气辉光 (CSS)
+z:0   SpaceParticles       星点背景 (Canvas)
+z:0   Globe (fixed)       3D 地球
+z:1   VideoBackground     视频背景
+z:10  Scene 场景文字区     各场景 section
+z:20  RippleEffect        Canvas 涟漪
+z:25  SceneIndex          右侧章节菜单
+z:30  Header              顶部导航
+```
+Globe 和 VideoBackground 共用 fixed 空间，通过 opacity 交叉淡入淡出。
+
+## 5. 渲染管线与数据流
+
+### 5.1 滚动驱动核心
+
+```
+window.onscroll (passive)
+  -&gt; progress = scrollY / (scrollHeight - innerHeight)  [0,1]
+  -&gt; rippleProgress = clamp((progress-0)/0.12, 0, 1)   [前12%]
+  -&gt; setState -&gt; 各组件 props -&gt; useFrame / useEffect / GSAP -&gt; 渲染
+```
+
+### 5.2 三条动画路径并行
+
+1. React 状态: progress/rippleProgress props 驱动 Globe/VideoBackground/RippleEffect
+2. GSAP ScrollTrigger: 基于滚动位置的 Timeline 驱动 7 个 Scene 文字入场 (opacity + y)
+3. CSS + IntersectionObserver: ScrollReveal 的 opacity/y transition
+三条路径互不冲突。
+
+## 6. 各组件深度解析
+
+### 6.1 Globe (Earth/Globe.tsx)
+
+结构: Canvas(camera: [0,0,4.5], fov:45) + EarthCore + Stars(2000)。
+纹理: useLoader 并发加载 4 张贴图 (atmos + clouds + specular + normal)。
+
+材质参数(重点优化):
+- emissive #2980b9 / intensity 0.15 -- 海洋亮蓝
+- clouds opacity 0.18 -- 云层半透明
+- specular #888 / shininess 20 -- 水面反光
+- 三层辉光壳 g1/g2/g3 (opacity 0.08/0.03/0.015)
+- ambientLight 1.4 / directionalLight 1.0
+
+旋转逻辑:
+  rot = INITIAL_ROTATION(1.8) + t*0.04 + progress*2.1
+  tilt = Math.sin(progress*0.5) * 0.08
+  云层旋转更快 (t*0.06 vs t*0.04)，产生大气流动层次感。
+  1.8 固定偏移确保初始视角始终显示大陆。
+
+缩放: scale = 0.75 + progress*0.45 (0.75 -&gt; 1.20)
+
+### 6.2 VideoBackground
+固定全屏视频层，透明度由 progress 分段控制:
+0-15% 渐入, 15-60% 保持, 60-85% 淡出。CSS filter: contrast(1.05) saturate(1.05)。
+
+### 6.3 RippleEffect
+Canvas 2D 粒子系统，前 12% 滚动触发。三层渲染:
+1. 核心光晕: radialGradient 脉动光球 (sin(t*4))
+2. 扩散环: 3 层椭圆环扩散，相位偏移 0.25
+3. 粒子散射: 波前位置生成，向外运动 + 透明度指数衰减
+波周期约 3.5s (t*1.8)，粒子速度 80-120px/s。
+
+### 6.4 SpaceParticles
+Canvas 2D 星点背景 (z:0)，贯穿全页。
+400 粒子, 0.3-3.5px, 蓝白色 (rgba(200,240,255))。
+亮点: 亮度粒子带 3倍光晕 + 120px 内星际连线。背景深蓝径向渐变。
+
+### 6.5 AtmosphereGlow
+纯 CSS 大气辉光 (z:-1)。三层 radial-gradient + blur + auroraDrift 动画。
+auroraDrift 12s-15s ease-in-out infinite alternate 缓慢漂移。
+
+### 6.6 ScrollReveal
+IntersectionObserver (threshold:0.15) 检测 [data-reveal] 元素，
+触发 CSS transition (opacity 0-&gt;1, y 30-&gt;0, 0.8s ease)。一次性触发。
+
+### 6.7 ImpactNode
+用于 SceneGlobalEcho 的环境故事卡片。Vision Pro 风格玻璃面板。
+backdrop-filter blur(20px) + hover 发光边框 + active 展开 body 文本。
+
+### 6.8 叙事场景 (Scene*)
+7 个场景使用 GSAP ScrollTrigger (scrub:1.5) 驱动文字飞入。
+GlobalEcho 额外 stagger:0.15 让 3 张卡片依次入场。
+
+### 6.9 UI 组件
+Header: Logo + 导航 + Ambient 声音开关(UI 完成、音频待接入)。
+SceneIndex: 右侧侧栏，滚动自动高亮当前章节。
+ScrollCue: 底部滚动提示 + animate-pulse。
+
+## 7. 设计系统
+
+CSS 变量: --bg-primary:#02050a / --cyan:#6de7ff / --glass:rgba(7,17,28,0.48)
+玻璃面板: backdrop-filter blur(18px) + border + shadow。
+响应式: clamp() 流体排版 + md 断点隐藏章节菜单。
+无障碍: prefers-reduced-motion 降级 + aria-pressed + aria-hidden。
+
+## 8. 完整数据流图
+
+```
+用户滚动
+  -&gt; onScroll (passive)
+    -&gt; progress [0,1]
+      -&gt; Globe.opacity   = 1 - p/0.2       (前20%淡出)
+      -&gt; Globe.rotation  = INITIAL + t*0.04 + p*2.1
+      -&gt; Globe.scale     = 0.75 + p*0.45
+      -&gt; Video.opacity   = f(p) (分段)
+    -&gt; rippleProgress [0,1] (前12%)
+      -&gt; RippleEffect (Canvas 脉冲)
+      -&gt; SceneOrigin (GSAP 标题入场)
+    -&gt; GSAP ScrollTrigger (基于元素位置)
+      -&gt; Scene* .fromTo (opacity + y)
+    -&gt; IntersectionObserver (threshold 0.15)
+      -&gt; ScrollReveal (CSS transition)
+```
+
+## 9. 性能考虑
+
+Canvas: requestAnimationFrame 驱动，粒子数 &lt; 400，resize 重置尺寸。
+Three.js: useMemo 缓存 Stars 几何体，useFrame 无对象创建。
+滚动: passive:true 确保不阻塞主线程。
+样式: Tailwind v4 tree-shaking + 仅 3 处 backdrop-filter。
+
+## 10. 已知限制与待办
+
+| 项 | 状态 |
+| --- | --- |
+| /videos/earth-closeup.mp4 | 已就位 |
+| Ambient 声音功能 | UI 就位，音频待接入 |
+| createMasterTimeline | 已定义未使用 |
+| THREE.Clock 弃用 | 警告，可换 Timer |
+| Stars 随机位置 | 每页加载不同 |
+
+## 11. 开发命令
+
+npm run dev | npm run build | npm run start</div></body></html>

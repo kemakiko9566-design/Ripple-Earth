@@ -1,0 +1,90 @@
+[
+  {
+    "id": "whale_pump",
+    "title": "The Whale Pump",
+    "subtitle": "鲸鱼泵 — Animals as Ocean Engineers",
+    "body": "Whales fertilize phytoplankton on a planetary scale. Before whaling, this pump sustained Southern Ocean productivity. We killed 90% of the whales. The pump almost stopped. Now it is slowly restarting.",
+    "systems": [
+      "ocean",
+      "biosphere"
+    ],
+    "year": 1950
+  },
+  {
+    "id": "concrete_paradox",
+    "title": "The Concrete Paradox",
+    "subtitle": "混凝土悖论 — The CO2 Absorber You Walk On",
+    "body": "Concrete accounts for 8% of global CO2 emissions. But over its lifetime, it re-absorbs ~30% through carbonation. Every sidewalk is pulling carbon from the air.",
+    "systems": [
+      "urban",
+      "climate"
+    ],
+    "year": 2023
+  },
+  {
+    "id": "plastic_sky",
+    "title": "The Plastic Sky",
+    "subtitle": "塑料天空 — A Cycle That Did Not Exist 50 Years Ago",
+    "body": "Microplastics are falling from the sky. They have been found in Arctic snow, human blood, and rain across every continent. A new planetary cycle.",
+    "systems": [
+      "atmosphere",
+      "ocean"
+    ],
+    "year": 2019
+  },
+  {
+    "id": "ozone_divide",
+    "title": "The Ozone Divide",
+    "subtitle": "臭氧分界 — The Treaty Nobody Celebrates",
+    "body": "The Montreal Protocol is the most successful environmental treaty. It shifted Southern Hemisphere weather patterns. And its phase-out of CFCs delayed global warming by a decade.",
+    "systems": [
+      "atmosphere",
+      "climate"
+    ],
+    "year": 1987
+  },
+  {
+    "id": "zombie_fire",
+    "title": "The Zombie Fire",
+    "subtitle": "僵尸火灾 — The Fire That Survives Winter",
+    "body": "In the Arctic, fires smolder underground through winter and re-emerge in spring. These zombie fires release ancient carbon from peat frozen for thousands of years.",
+    "systems": [
+      "cryosphere",
+      "climate"
+    ],
+    "year": 2021
+  },
+  {
+    "id": "dark_fleet",
+    "title": "The Dark Fleet",
+    "subtitle": "黑暗舰队 — Ships That Hide in Plain Sight",
+    "body": "Hundreds of ships turn off their tracking systems to hide. Satellite radar reveals up to 1 in 5 fishing vessels operates in the dark.",
+    "systems": [
+      "ocean",
+      "human_activity"
+    ],
+    "year": 2020
+  },
+  {
+    "id": "sleeping_giant",
+    "title": "The Sleeping Giant",
+    "subtitle": "沉睡的巨人 — Thawing Permafrost",
+    "body": "Permafrost holds twice as much carbon as the atmosphere. As it thaws, it releases CO2, methane — and ancient pathogens. A self-reinforcing feedback loop.",
+    "systems": [
+      "cryosphere",
+      "climate"
+    ],
+    "year": 2016
+  },
+  {
+    "id": "invisible_orchestra",
+    "title": "The Invisible Orchestra",
+    "subtitle": "无形管弦乐队 — Ocean Noise Pollution",
+    "body": "Shipping noise has raised the ocean sound level by 15-20 dB. Blue whales have changed their call frequency to be heard. Invisible pollution across entire ocean basins.",
+    "systems": [
+      "ocean",
+      "human_activity"
+    ],
+    "year": 2025
+  }
+]
